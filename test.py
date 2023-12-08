@@ -1,20 +1,10 @@
-from huggingface_hub import hf_hub_url, hf_hub_download
 from joblib import load
 import pandas as pd
-from dotenv import load_dotenv
-import os
 
-load_dotenv()
-token = os.getenv("HUGGINGFACE_TOKEN")
+# Define model paths
+regressor_model_path = 'extra_trees_regressor.joblib'
+classifier_model_path = 'extra_trees_classifier.joblib'
 
-# Replace these with your Hugging Face repository ID and filename
-REPO_ID = 'jackmanners/AcutePerformance_DaytimeSleep'
-REGRESSOR_FILENAME = 'extra_trees_regressor.joblib'
-CLASSIFIER_FILENAME = 'extra_trees_classifier.joblib'
-
-# Download models
-regressor_model_path = hf_hub_download(REPO_ID, REGRESSOR_FILENAME, token=token)
-classifier_model_path = hf_hub_download(REPO_ID, CLASSIFIER_FILENAME, token=token)
 # Load models
 regressor_model = load(regressor_model_path)
 classifier_model = load(classifier_model_path)
