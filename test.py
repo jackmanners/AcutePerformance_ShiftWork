@@ -1,5 +1,6 @@
 from joblib import load
 import pandas as pd
+from tkinter import Tk, filedialog
 
 # Define model paths
 regressor_model_path = 'extra_trees_regressor.joblib'
@@ -9,8 +10,13 @@ classifier_model_path = 'extra_trees_classifier.joblib'
 regressor_model = load(regressor_model_path)
 classifier_model = load(classifier_model_path)
 
-# Assuming 'df' is a DataFrame with the appropriate features - see example_dataset.csv
-df = pd.read_csv('example_dataset.csv')
+# Open file dialog to select CSV file
+root = Tk()
+root.withdraw()
+csv_file_path = filedialog.askopenfilename(filetypes=[('CSV Files', '*.csv')])
+
+# Read the CSV file
+df = pd.read_csv(csv_file_path)
 
 # Make the predictions
 reaction_time_predictions = regressor_model.predict(df)
