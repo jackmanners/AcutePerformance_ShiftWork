@@ -1,5 +1,5 @@
 import os
-import stat
+import sys
 from joblib import load
 import pandas as pd
 from tkinter import Tk, filedialog
@@ -7,10 +7,12 @@ from tkinter import Tk, filedialog
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import warnings
+# Suppressing version warning
+warnings.filterwarnings('ignore', message='is_categorical_dtype is deprecated')
+
 class PerformancePredictor:
-    
-    
-    def __init__(self, filepath=None, expand=False,
+    def __init__(self, filepath=None, expand=True,
                  regressor_model_path='models/extra_trees_regressor.joblib',
                  classifier_model_path='models/extra_trees_classifier.joblib'):
         """
@@ -31,6 +33,8 @@ class PerformancePredictor:
         self.filepath = filepath
         self.dataframe = self.load_csv(filepath)
         self.expanded_dataframe = self.expand_data() if expand else None
+        
+        print(f"Data loaded{' and expanded' if expand else ''} from: {self.filepath}")
      
     def _check_columns(self, df) -> None:
         """
@@ -60,21 +64,27 @@ class PerformancePredictor:
             root = Tk()
             root.withdraw()
             csv_file_path = filedialog.askopenfilename(filetypes=[('CSV Files', '*.csv')])
-            
+
         # Read the CSV file
-        df = pd.read_csv(csv_file_path)
+        try: 
+            df = pd.read_csv(csv_file_path)
+        except FileNotFoundError:
+            sys.stderr.write(f"File not found: '{csv_file_path}'\n")
+            sys.exit(1)
+
         self._check_columns(df)
         self.filepath = csv_file_path
-        
+
         return df
     
     
-    def predict(self, expanded=False, savefile=False, savefolder=None) -> pd.DataFrame:
+    def predict(self, expanded=False, savefile=True, savefolder='output') -> pd.DataFrame:
         """
         Make predictions based on the selected CSV file. Uses preloaded data if no file is selected.
 
         Args:
         - csv_file_path: str, path to the CSV file (default: None)
+        - expanded: bool, whether to use expanded data (default: False)
         - savefile: bool, whether to save the updated DataFrame (default: False)
         - savefolder: str, path to the folder where the updated DataFrame should be saved (default: None)
 
@@ -90,6 +100,7 @@ class PerformancePredictor:
         predictor.predict(csv_file_path='data.csv', savefile=True, savefolder='results')
         ```
         """
+        print(f"Predicting {'expanded ' if expanded else ''}input data...")
         df = self.expanded_dataframe if expanded else self.dataframe
         df_required = df[self._required_columns].copy()
 
@@ -106,10 +117,10 @@ class PerformancePredictor:
             filename = os.path.splitext(self.filepath.split('/')[-1])[0]
             savename = f'{filename}_with_predictions{f"_expanded" if expanded else ""}.csv'
                 
-            savepath = f'{savefolder}/{savename}' if savefolder else os.path.join(os.getcwd(), savename)
+            savepath = f'{savefolder}/{savename}' if savefolder else savename
                     
             df.to_csv(savepath, index=False)
-            print(f"Saved locally at {savepath}")
+            print(f"Saved {'expanded ' if expanded else ''}data locally at {savepath}")
 
         return df
     
@@ -124,7 +135,7 @@ class PerformancePredictor:
         df.drop_duplicates(subset=df.columns.difference(['timeSince']), inplace=True)
         
         expanded_rows = []
-        for time in range(200, 810, 10):
+        for time in range(300, 790, 10):
             expanded_row = df.copy()
             expanded_row['timeSince'] = time
             expanded_rows.append(expanded_row)
@@ -134,43 +145,57 @@ class PerformancePredictor:
         
         return expanded_df
             
-    def plot_individual_data(self, identifier=0, identities=[], show=False, plt_kwargs={'figsize': (16, 4), 'dpi': 150}):
+    def plot_individual_data(self, identifier=0, identities=None, show=False, save=True, plt_kwargs={'figsize': (16, 4), 'dpi': 150}):
         """
         Plot each individual's data with the x-axis being df['timeSince'] and the y-axis being 'reaction_time_predictions',
         with the hue being the 'participant' column. Include the '5_orMore_lapse_predictions' column as well.
 
         Args:
             identifier (str or int): The column name or index to filter the data. The default is the index of the first column.
-            identities (list): A list of values to filter the data. The default is an empty list.
+            identities (list): A list of values to filter the data. The default is None (all).
+            show (bool): Whether to show the plot. The default is False.
+            save (bool): Whether to save the plot. The default is True.
             plt_kwargs (dict): Additional keyword arguments to be passed to the plot function. E.g. {'figsize': (8, 10), 'dpi': 300}.
 
         Returns:
             None
         """
+        plot_print = 'all participants (NOT RECOMMENDED)' if not identities else identities
+        print(f"Plotting {plot_print}...")
+        
         assert isinstance(identifier, (str, int)), "Identifier must be a string column name or an integer column index."
         
-        expanded_df = self.predict(expanded=True)
+        if self.expanded_dataframe is None:
+            expanded_df = self.predict(expanded=True)
+        else: 
+            expanded_df = self.expanded_dataframe.copy()
 
         if isinstance(identifier, str):
-            df = expanded_df[expanded_df[identifier].isin(identities)].copy()
+            if identities is None:
+                df = expanded_df.copy()
+            else:
+                df = expanded_df[expanded_df[identifier].isin(identities)].copy()
         elif isinstance(identifier, int):
-            df = expanded_df.iloc[:, identifier].copy()
+            if identities is None:
+                df = expanded_df.iloc[:, identifier].copy()
+            else:
+                df = expanded_df[expanded_df.iloc[:, identifier].isin(identities)].copy()
 
-        # Convert identities to categorical data type
-        df.loc[:, identifier] = pd.Categorical(df.loc[:, identifier])
+        # Convert identifier column values to strings if necessary
+        if not df[identifier].dtype == 'object':
+            df.loc[:, identifier] = df.loc[:, identifier].astype(str)
 
         plt.figure(**plt_kwargs)
         sns.scatterplot(data=df, x='timeSince', y='reaction_time_predictions', hue=identifier, style='5_orMore_lapse_predictions', s=20, palette='deep')
-        plt.xlim(0)  # Set the x-axis limit to start at 0
         plt.xlabel('Time Since Wake')
         plt.ylabel('Predicted Reaction Time (ms)')
 
         # Set the subtitle
         plt.title(
-            "Scatter plot with trendline\nSolid line: Trendline",  # Subtitle text
+            "Performance Predictions\n(Dot: <5 Predicted Lapses, Cross: <5 Predicted Lapses)",
             fontsize=12,
-            color="grey", 
-            x=0.5,  # Set the x position to 0.5 (centered)
+            color="black",  # Change the color to black
+            fontdict={'verticalalignment': 'baseline', 'fontsize': 10}
         )
         
         handles, labels = plt.gca().get_legend_handles_labels()
@@ -186,5 +211,9 @@ class PerformancePredictor:
         
         plt.tight_layout()  # Adjust the layout to prevent overlapping
         
-        if show:
-            plt.show()
+        if save: 
+            savepath = f'output/prediction_plot.png'
+            plt.savefig(savepath, dpi=300)
+            print(f"Saved plot at {savepath}")
+        if show: plt.show()
+        
