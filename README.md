@@ -1,6 +1,6 @@
-# Performance Estimation Models - Jack Manners
+# Performance Estimation Models
 
-This repository hosts performance estimation models and execution code developed by Jack Manners. 
+This repository hosts performance estimation models and execution code developed in an upcoming manuscript (_unpublished_, Manners et al., 2023/4).
 
 These models were constructed using scikit-learn, based on a dataset from approximately 24 individuals who participated in a simulated shift work study. In this study, participants were required to advance their sleep schedule 12 hours, followed by nighttime "shift-work" containing an array of performance tasks.
 
