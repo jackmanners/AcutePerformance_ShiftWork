@@ -1,6 +1,6 @@
 # Performance Estimation Models
 
-This repository hosts performance estimation models and execution code developed in an upcoming manuscript (_unpublished_, Manners et al., 2023/4).
+This repository hosts performance estimation models and execution code developed in the manuscript, [Manners et al., 2024](https://doi.org/10.1111/jsr.14138) (full citation [below](#citation)).
 
 These models were constructed using scikit-learn, based on a dataset from approximately 24 individuals who participated in a simulated shift work study. In this study, participants were required to advance their sleep schedule 12 hours, followed by nighttime "shift-work" containing an array of performance tasks.
 
@@ -67,3 +67,8 @@ pp.plot_individual_data(
     save=True # Whether to save the plot (to 'output' folder)
 )
 ``````
+
+
+## Citation
+
+Manners, J., Kemps, E., Guyett, A., Stuart, N., Lechat, B., Catcheside, P., & Scott, H. (2024). Estimating vigilance from the pre-work shift sleep using an under-mattress sleep sensor. Journal of Sleep Research, e14138. https://doi.org/10.1111/jsr.14138
